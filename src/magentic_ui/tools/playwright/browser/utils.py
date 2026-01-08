@@ -6,7 +6,7 @@ from autogen_core import ComponentModel
 from .base_playwright_browser import PlaywrightBrowser
 from .headless_docker_playwright_browser import HeadlessDockerPlaywrightBrowser
 from .local_playwright_browser import LocalPlaywrightBrowser
-from .vnc_docker_playwright_browser import VncDockerPlaywrightBrowser
+from .vnc_subprocess_playwright_browser import VncSubprocessPlaywrightBrowser
 
 
 def get_available_port() -> tuple[int, socket.socket]:
@@ -41,12 +41,9 @@ def _get_docker_browser_resource_config(
             novnc_port, sock = get_available_port()
             sock.close()
 
-        browser = VncDockerPlaywrightBrowser(
-            bind_dir=bind_dir,
+        browser = VncSubprocessPlaywrightBrowser(
             playwright_port=playwright_port,
             novnc_port=novnc_port,
-            inside_docker=inside_docker,
-            network_name=network_name,
         )
 
     return browser, novnc_port, playwright_port

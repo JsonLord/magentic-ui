@@ -9,7 +9,7 @@ from .browser import (
     PlaywrightBrowser,
     DockerPlaywrightBrowser,
     LocalPlaywrightBrowser,
-    VncDockerPlaywrightBrowser,
+    VncSubprocessPlaywrightBrowser,
     HeadlessDockerPlaywrightBrowser,
 )
 
@@ -22,6 +22,6 @@ __all__ = [
     "PlaywrightBrowser",
     "DockerPlaywrightBrowser",
     "LocalPlaywrightBrowser",
-    "VncDockerPlaywrightBrowser",
+    "VncSubprocessPlaywrightBrowser",
     "HeadlessDockerPlaywrightBrowser",
 ]

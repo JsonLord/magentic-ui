@@ -58,7 +58,7 @@ from playwright.async_api import (
     Page,
 )
 
-from ...tools.playwright.browser import PlaywrightBrowser, VncDockerPlaywrightBrowser
+from ...tools.playwright.browser import PlaywrightBrowser, VncSubprocessPlaywrightBrowser
 
 from ...approval_guard import (
     ApprovalGuardContext,
@@ -303,7 +303,7 @@ class WebSurfer(BaseChatAgent, Component[WebSurferConfig]):
         # TODO: These are a little bit of a hack so we can get the ports out of the browser object
         self.novnc_port = -1
         self.playwright_port = -1
-        if isinstance(self._browser, VncDockerPlaywrightBrowser):
+        if isinstance(self._browser, VncSubprocessPlaywrightBrowser):
             self.novnc_port = self._browser.novnc_port
             self.playwright_port = self._browser.playwright_port
 
@@ -419,7 +419,7 @@ class WebSurfer(BaseChatAgent, Component[WebSurferConfig]):
 
         await self._browser.__aenter__()
 
-        if isinstance(self._browser, VncDockerPlaywrightBrowser):
+        if isinstance(self._browser, VncSubprocessPlaywrightBrowser):
             self.novnc_port = self._browser.novnc_port
             self.playwright_port = self._browser.playwright_port
 
@@ -553,7 +553,7 @@ class WebSurfer(BaseChatAgent, Component[WebSurferConfig]):
         # Send browser address message if this is the first time the browser is being used
         if (
             self._browser_just_initialized
-            and isinstance(self._browser, VncDockerPlaywrightBrowser)
+            and isinstance(self._browser, VncSubprocessPlaywrightBrowser)
             and self._browser.novnc_port > 0
         ):
             # Send browser address message after browser is initialized
