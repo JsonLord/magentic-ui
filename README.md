@@ -1,3 +1,13 @@
+---
+title: ImmoSpider
+emoji: 🕷️
+colorFrom: red
+colorTo: yellow
+sdk: gradio
+sdk_version: "3.41.2"
+app_file: app.py
+pinned: false
+---
 <div align="center">
 <img src="docs/img/magui-readme-logo.svg" alt="Magentic-UI Logo">
 
@@ -455,4 +465,3 @@ Any use of third-party trademarks or logos are subject to those third-party's po
 Privacy information can be found at <https://go.microsoft.com/fwlink/?LinkId=521839>
 
 Microsoft and any contributors reserve all other rights, whether under their respective copyrights, patents, or trademarks, whether by implication, estoppel, or otherwise.
-
