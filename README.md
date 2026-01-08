@@ -1,3 +1,12 @@
+---
+title: Magentic UI
+emoji: 🚀
+colorFrom: purple
+colorTo: gray
+sdk: docker
+app_port: 7860
+---
+
 <div align="center">
 <img src="docs/img/magui-readme-logo.svg" alt="Magentic-UI Logo">
 
