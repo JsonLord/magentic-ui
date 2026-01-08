@@ -21,7 +21,7 @@ import PIL.Image as Image
 
 from .._web_surfer import WebSurfer
 from ._prompts import get_computer_use_system_prompt
-from ....tools.playwright.browser import VncDockerPlaywrightBrowser
+from ....tools.playwright.browser import VncSubprocessPlaywrightBrowser
 from ....tools.playwright.playwright_controller_fara import PlaywrightController
 from ....types import HumanInputFormat
 
@@ -251,7 +251,7 @@ class FaraWebSurfer(WebSurfer):
         # Send browser address message if this is the first time the browser is being used
         if (
             self._browser_just_initialized
-            and isinstance(self._browser, VncDockerPlaywrightBrowser)
+            and isinstance(self._browser, VncSubprocessPlaywrightBrowser)
             and self._browser.novnc_port > 0
         ):
             # Send browser address message after browser is initialized
