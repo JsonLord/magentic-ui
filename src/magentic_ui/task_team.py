@@ -237,6 +237,7 @@ async def get_task_team(
             flat_details = await jina_agent.a_get_content(url)
             analysis = await llm_analyser_agent.a_analyze_description(flat_details)
             await telegram_agent.a_send_message(flat_details, analysis)
+            return telegram_agent._format_message(flat_details, analysis)
 
         team = RoundRobinGroupChat(
             participants=team_participants,

@@ -1,4 +1,4 @@
-from autogen_agentchat.agents import Agent
+from autogen_agentchat.base import ChatAgent as Agent
 from autogen_core.models import ChatCompletionClient
 
 class LLMAnalyserAgent(Agent):

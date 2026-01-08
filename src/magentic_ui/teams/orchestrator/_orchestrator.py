@@ -44,7 +44,6 @@ from ...learning.memory_provider import MemoryControllerProvider
 
 from ...types import HumanInputFormat, Plan, SentinelPlanStep
 from ...utils import dict_to_str, thread_to_context
-from ...tools.bing_search import get_bing_search_results
 from ...teams.orchestrator.orchestrator_config import OrchestratorConfig
 from ._prompts import (
     get_orchestrator_system_message_planning,
@@ -586,31 +585,6 @@ class Orchestrator(BaseGroupChatManager):
             await self._orchestrate_step_planning(cancellation_token)
         else:
             await self._orchestrate_step_execution(cancellation_token)
-
-    async def do_bing_search(self, query: str) -> str | None:
-        try:
-            # log the bing search request
-            await self._log_message_agentchat(
-                "Searching online for information...",
-                metadata={"internal": "no", "type": "progress_message"},
-            )
-            bing_search_results = await get_bing_search_results(
-                query,
-                max_pages=3,
-                max_tokens_per_page=5000,
-                timeout_seconds=35,
-            )
-            if bing_search_results.combined_content != "":
-                bing_results_progress = f"Reading through {len(bing_search_results.page_contents)} web pages..."
-                await self._log_message_agentchat(
-                    bing_results_progress,
-                    metadata={"internal": "no", "type": "progress_message"},
-                )
-                return bing_search_results.combined_content
-            return None
-        except Exception as e:
-            trace_logger.exception(f"Error in doing bing search: {e}")
-            return None
 
     async def _get_websurfer_page_info(self) -> None:
         """Get the page information from the web surfer agent."""

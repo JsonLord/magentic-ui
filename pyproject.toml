@@ -49,6 +49,8 @@ dependencies = [
     "html2text",
     "psutil",
     "python-telegram-bot",
+    "gradio",
+    "huggingface_hub",
 ]
 
 [project.urls]
