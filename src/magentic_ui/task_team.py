@@ -9,12 +9,12 @@ from .agents import (
     USER_PROXY_DESCRIPTION,
     CoderAgent,
     FileSurfer,
-    FaraWebSurfer,
-    WebSurfer,
+    JinaAgent,
+    LLMAnalyserAgent,
+    TelegramAgent,
 )
 from .agents.mcp import McpAgent
 from .agents.users import DummyUserProxy, MetadataUserProxy
-from .agents.web_surfer import WebSurferConfig
 from .approval_guard import (
     ApprovalConfig,
     ApprovalGuard,
@@ -26,9 +26,7 @@ from .learning.memory_provider import MemoryControllerProvider
 from .magentic_ui_config import MagenticUIConfig, ModelClientConfigs
 from .teams import GroupChat, RoundRobinGroupChat
 from .teams.orchestrator.orchestrator_config import OrchestratorConfig
-from .tools.playwright.browser import get_browser_resource_config
 from .types import RunPaths
-from .utils import get_internal_urls
 
 
 async def get_task_team(
@@ -78,25 +76,9 @@ async def get_task_team(
         else "never"
     )
 
-    websurfer_loop_team: bool = (
-        magentic_ui_config.websurfer_loop if magentic_ui_config else False
-    )
-
     model_client_coder = get_model_client(magentic_ui_config.model_client_configs.coder)
     model_client_file_surfer = get_model_client(
         magentic_ui_config.model_client_configs.file_surfer
-    )
-    browser_resource_config, _novnc_port, _playwright_port = (
-        get_browser_resource_config(
-            paths.external_run_dir,
-            magentic_ui_config.novnc_port,
-            magentic_ui_config.playwright_port,
-            magentic_ui_config.inside_docker,
-            headless=magentic_ui_config.browser_headless,
-            local=magentic_ui_config.browser_local
-            or magentic_ui_config.run_without_docker,
-            network_name=magentic_ui_config.network_name,
-        )
     )
 
     orchestrator_config = OrchestratorConfig(
@@ -111,27 +93,6 @@ async def get_task_team(
         allow_follow_up_input=magentic_ui_config.allow_follow_up_input,
         final_answer_prompt=magentic_ui_config.final_answer_prompt,
         sentinel_plan=magentic_ui_config.sentinel_plan,
-    )
-    websurfer_model_client = magentic_ui_config.model_client_configs.web_surfer
-    if websurfer_model_client is None:
-        websurfer_model_client = ModelClientConfigs.get_default_client_config()
-    websurfer_config = WebSurferConfig(
-        name="web_surfer",
-        model_client=websurfer_model_client,
-        browser=browser_resource_config,
-        single_tab_mode=False,
-        max_actions_per_step=magentic_ui_config.max_actions_per_step,
-        url_statuses={key: "allowed" for key in orchestrator_config.allowed_websites}
-        if orchestrator_config.allowed_websites
-        else None,
-        url_block_list=get_internal_urls(magentic_ui_config.inside_docker, paths),
-        multiple_tools_per_call=magentic_ui_config.multiple_tools_per_call,
-        downloads_folder=str(paths.internal_run_dir),
-        debug_dir=str(paths.internal_run_dir),
-        animate_actions=True,
-        start_page=None,
-        use_action_guard=True,
-        to_save_screenshots=False,
     )
 
     user_proxy: DummyUserProxy | MetadataUserProxy | UserProxyAgent
@@ -194,18 +155,7 @@ async def get_task_team(
                 approval_policy=approval_policy,
             ),
         )
-    with ApprovalGuardContext.populate_context(approval_guard):
-        if magentic_ui_config.use_fara_agent:
-            web_surfer = FaraWebSurfer.from_config(websurfer_config)
-        else:
-            web_surfer = WebSurfer.from_config(websurfer_config)
-    if websurfer_loop_team:
-        # simplified team of only the web surfer
-        team = RoundRobinGroupChat(
-            participants=[web_surfer, user_proxy],
-            max_turns=10000,
-        )
-        return team
+
     coder_agent: CoderAgent | None = None
     file_surfer: FileSurfer | None = None
     if not magentic_ui_config.run_without_docker:
@@ -247,7 +197,6 @@ async def get_task_team(
         memory_provider = None
 
     team_participants: List[ChatAgent] = [
-        web_surfer,
         user_proxy,
     ]
     if not magentic_ui_config.run_without_docker:
@@ -256,11 +205,51 @@ async def get_task_team(
         team_participants.extend([coder_agent, file_surfer])
     team_participants.extend(mcp_agents)
 
-    team = GroupChat(
-        participants=team_participants,
-        orchestrator_config=orchestrator_config,
+    if magentic_ui_config.jina_api_token:
+        jina_agent = JinaAgent(
+            name="jina_agent",
+            api_token=magentic_ui_config.jina_api_token,
+            model_client=model_client_orch,
+        )
+        team_participants.append(jina_agent)
+
+    llm_analyser_agent = LLMAnalyserAgent(
+        name="llm_analyser_agent",
         model_client=model_client_orch,
-        memory_provider=memory_provider,
     )
+    team_participants.append(llm_analyser_agent)
+
+    if magentic_ui_config.telegram_bot_token and magentic_ui_config.telegram_chat_id:
+        telegram_agent = TelegramAgent(
+            name="telegram_agent",
+            bot_token=magentic_ui_config.telegram_bot_token,
+            chat_id=magentic_ui_config.telegram_chat_id,
+        )
+        team_participants.append(telegram_agent)
+
+    # Define the workflow only if all required configs are present
+    if (
+        magentic_ui_config.jina_api_token
+        and magentic_ui_config.telegram_bot_token
+        and magentic_ui_config.telegram_chat_id
+    ):
+        async def workflow(url: str):
+            flat_details = await jina_agent.a_get_content(url)
+            analysis = await llm_analyser_agent.a_analyze_description(flat_details)
+            await telegram_agent.a_send_message(flat_details, analysis)
+
+        team = RoundRobinGroupChat(
+            participants=team_participants,
+            max_turns=10,
+        )
+        team.workflow = workflow
+    else:
+        # Fallback to a simple GroupChat if the workflow cannot be created
+        team = GroupChat(
+            participants=team_participants,
+            orchestrator_config=orchestrator_config,
+            model_client=model_client_orch,
+            memory_provider=memory_provider,
+        )
 
     return team

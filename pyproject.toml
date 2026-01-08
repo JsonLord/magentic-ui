@@ -48,6 +48,7 @@ dependencies = [
     "pyyaml",
     "html2text",
     "psutil",
+    "python-telegram-bot",
 ]
 
 [project.urls]
