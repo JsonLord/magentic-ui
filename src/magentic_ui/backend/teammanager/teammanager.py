@@ -26,12 +26,10 @@ from ...task_team import get_task_team
 from ...types import RunPaths
 from ...magentic_ui_config import MagenticUIConfig, ModelClientConfigs
 from ...input_func import InputFuncType
-from ...agents import WebSurfer
 
 from ..datamodel.types import EnvironmentVariable, LLMCallEventMessage, TeamResult
 from ..datamodel.db import Run
 from ..utils.utils import get_modified_files
-from ...tools.playwright.browser.utils import get_browser_resource_config
 
 
 class RunEventLogger(logging.Handler):
@@ -180,23 +178,14 @@ class TeamManager:
         settings_config: dict[str, Any] = {},
         *,
         paths: RunPaths,
-    ) -> tuple[Team, int, int]:
+    ) -> Team:
         """Create team instance from config"""
-        if not self.run_without_docker:
-            _, novnc_port, playwright_port = get_browser_resource_config(
-                paths.external_run_dir, -1, -1, self.inside_docker
-            )
-        else:
-            novnc_port = -1
-            playwright_port = -1
-
         try:
             # Logic here: we first see if the config file passed to magentic-ui has valid configs for all clients
             # If Yes: this takes precedent over the UI LLM config and is passed to magentic-ui team
             # If No: we disregard it and use the UI LLM config
             model_client_from_config_file = ModelClientConfigs(
                 orchestrator=self.config.get("orchestrator_client", None),
-                web_surfer=self.config.get("web_surfer_client", None),
                 coder=self.config.get("coder_client", None),
                 file_surfer=self.config.get("file_surfer_client", None),
                 action_guard=self.config.get("action_guard_client", None),
@@ -204,7 +193,6 @@ class TeamManager:
             is_complete_config_from_file = all(
                 [
                     model_client_from_config_file.orchestrator,
-                    model_client_from_config_file.web_surfer,
                     model_client_from_config_file.coder,
                     model_client_from_config_file.file_surfer,
                     model_client_from_config_file.action_guard,
@@ -278,8 +266,8 @@ class TeamManager:
             config_params = {
                 **settings_config,  # type: ignore,
                 # These must always be set to the values computed above
-                "playwright_port": playwright_port,
-                "novnc_port": novnc_port,
+                "playwright_port": -1,
+                "novnc_port": -1,
                 # Defer to self for inside_docker
                 "inside_docker": self.inside_docker,
             }
@@ -319,12 +307,6 @@ class TeamManager:
                     paths=paths,
                 ),
             )
-            if hasattr(self.team, "_participants"):
-                for agent in cast(list[ChatAgent], self.team._participants):  # type: ignore
-                    if isinstance(agent, WebSurfer):
-                        novnc_port = agent.novnc_port
-                        playwright_port = agent.playwright_port
-
             if state:
                 if isinstance(state, str):
                     # Check if the string is empty or whitespace only
@@ -344,7 +326,7 @@ class TeamManager:
                 else:
                     await self.team.load_state(state)
 
-            return self.team, novnc_port, playwright_port
+            return self.team
         except Exception as e:
             logger.error(f"Error creating team: {e}")
             await self.close()
@@ -392,8 +374,7 @@ class TeamManager:
         try:
             # TODO: This might cause problems later if we are not careful
             if self.team is None:
-                # TODO: if we start allowing load from config, we'll need to write the novnc and playwright ports back to the team config..
-                _, _, _ = await self._create_team(
+                await self._create_team(
                     team_config,
                     state,
                     input_func,

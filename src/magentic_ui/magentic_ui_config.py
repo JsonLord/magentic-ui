@@ -131,3 +131,6 @@ class MagenticUIConfig(BaseModel):
     run_without_docker: bool = False
     browser_headless: bool = False
     network_name: str = "my-network"
+    jina_api_token: Optional[str] = None
+    telegram_bot_token: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
