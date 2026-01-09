@@ -2,7 +2,7 @@ import { RcFile } from "antd/es/upload";
 import { IStatus } from "./types/app";
 
 export const getServerUrl = () => {
-  return process.env.GATSBY_API_URL || "/api";
+  return process.env.GATSBY_API_PREFIX || "";
 };
 
 export function setCookie(name: string, value: any, days: number) {

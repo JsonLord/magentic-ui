@@ -8,7 +8,7 @@
     "gatsby"
   ],
   "scripts": {
-    "develop": "gatsby clean && gatsby develop",
+    "develop": "gatsby clean && gatsby develop -p 8000",
     "dev": "npm run develop",
     "start": "gatsby clean && gatsby develop",
     "build": "gatsby clean && rm -rf ../src/magentic_ui/backend/web/ui && PREFIX_PATH_VALUE='' gatsby build --prefix-paths && rsync -a --delete public/ ../src/magentic_ui/backend/web/ui/",
