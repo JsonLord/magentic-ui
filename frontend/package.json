@@ -10,7 +10,7 @@
   "scripts": {
     "develop": "gatsby clean && gatsby develop -p 8000",
     "dev": "npm run develop",
-    "start": "gatsby clean && gatsby develop",
+    "start": "gatsby clean && gatsby develop -p 8000",
     "build": "gatsby clean && rm -rf ../src/magentic_ui/backend/web/ui && PREFIX_PATH_VALUE='' gatsby build --prefix-paths && rsync -a --delete public/ ../src/magentic_ui/backend/web/ui/",
     "serve": "gatsby serve",
     "clean": "gatsby clean",
